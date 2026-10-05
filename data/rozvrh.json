@@ -318,6 +318,52 @@
           "status": "normal"
         }
       }
+    },
+    "2026-10-08": {
+      "custom": [
+        {
+          "subject": "FYZ",
+          "class": "5A6",
+          "room": "322",
+          "start": "10:55",
+          "end": "11:40",
+          "note": "Suplování",
+          "status": "normal",
+          "id": "c1791188996181"
+        },
+        {
+          "subject": "FYZ",
+          "class": "4A6",
+          "room": "363",
+          "start": "13:15",
+          "end": "14:00",
+          "note": "Suplování",
+          "status": "normal",
+          "id": "c1791189133092"
+        }
+      ]
+    },
+    "2026-10-09": {
+      "events": {
+        "fr6": {
+          "subject": "MAT",
+          "class": "3A8",
+          "room": "123",
+          "start": "13:15",
+          "end": "14:00",
+          "note": "Volby",
+          "status": "cancelled"
+        },
+        "fr5b": {
+          "subject": "FYZ",
+          "class": "3A6",
+          "room": "365",
+          "start": "12:20",
+          "end": "13:05",
+          "note": "Volby",
+          "status": "cancelled"
+        }
+      }
     }
   }
 }
