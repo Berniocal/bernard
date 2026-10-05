@@ -8,7 +8,8 @@ const monday=d=>{let x=new Date(d.getFullYear(),d.getMonth(),d.getDate()),n=x.ge
 const mins=t=>{let[a,b]=t.split(':').map(Number);return a*60+b};
 const tm=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-let week=monday(new Date());
+const narrow=()=>window.matchMedia('(max-width:700px)').matches;
+let week=monday(new Date()),resizeBound=false;
 
 const DEFAULT_DUTIES=[
   {id:'du-mo-0750',day:1,start:'07:50',end:'08:00',subject:'DOHLED',class:'',room:'2ČŽ',kind:'duty'},
@@ -25,40 +26,43 @@ function normalize(x){
 }
 function ch(k){return data.changes?.[k]||{}}
 function fmt(d){return d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'})}
+function dayWidth(){
+  const v=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--day-w'));
+  return Number.isFinite(v)?v:(narrow()?72:95);
+}
 
 function layout(){
-  const p=data.periods||[], slots=[];
+  const p=data.periods||[],slots=[];
+  const mobile=narrow(),periodWidth=mobile?112:150,breakMin=mobile?36:22,breakFactor=mobile?3.4:2.5;
   p.forEach((x,i)=>{
-    slots.push({type:'period',key:'p'+i,index:i,label:x.label,start:x.start,end:x.end,width:150});
+    slots.push({type:'period',key:'p'+i,index:i,label:x.label,start:x.start,end:x.end,width:periodWidth});
     const next=p[i+1];
     if(next){
       const gap=mins(next.start)-mins(x.end);
-      if(gap>0) slots.push({type:'break',key:'b'+i,index:i,start:x.end,end:next.start,width:Math.max(22,gap*2.5)});
+      if(gap>0) slots.push({type:'break',key:'b'+i,index:i,start:x.end,end:next.start,width:Math.max(breakMin,gap*breakFactor)});
     }else if(data.timeline?.end && mins(data.timeline.end)>mins(x.end)){
       const gap=mins(data.timeline.end)-mins(x.end);
-      slots.push({type:'break',key:'bend',index:i,start:x.end,end:data.timeline.end,width:Math.max(22,gap*2.5)});
+      slots.push({type:'break',key:'bend',index:i,start:x.end,end:data.timeline.end,width:Math.max(breakMin,gap*breakFactor)});
     }
   });
-  let col=1;
-  slots.forEach(s=>s.col=col++);
-  return slots;
+  let col=1;slots.forEach(s=>s.col=col++);return slots;
 }
 function template(slots){return slots.map(s=>s.width+'px').join(' ')}
 function periodSlotForEvent(e,slots){
   const mid=(mins(e.start)+mins(e.end))/2;
-  const candidates=slots.filter(s=>s.type==='period' && mid>=mins(s.start) && mid<=mins(s.end));
-  if(candidates.length) return candidates.sort((a,b)=>mins(b.start)-mins(a.start))[0];
+  const candidates=slots.filter(s=>s.type==='period'&&mid>=mins(s.start)&&mid<=mins(s.end));
+  if(candidates.length)return candidates.sort((a,b)=>mins(b.start)-mins(a.start))[0];
   return slots.filter(s=>s.type==='period').sort((a,b)=>Math.abs(mid-(mins(a.start)+mins(a.end))/2)-Math.abs(mid-(mins(b.start)+mins(b.end))/2))[0];
 }
 function breakSlotForEvent(e,slots){
   const mid=(mins(e.start)+mins(e.end))/2;
-  return slots.find(s=>s.type==='break' && mid>=mins(s.start) && mid<=mins(s.end)) || null;
+  return slots.find(s=>s.type==='break'&&mid>=mins(s.start)&&mid<=mins(s.end))||null;
 }
 function activeSlot(m,slots){
-  const ps=slots.filter(s=>s.type==='period' && m>=mins(s.start) && m<=mins(s.end)).sort((a,b)=>mins(b.start)-mins(a.start));
-  if(ps.length){const s=ps[0];return {slot:s,frac:Math.max(0,Math.min(1,(m-mins(s.start))/(mins(s.end)-mins(s.start))))}}
-  const b=slots.find(s=>s.type==='break' && m>=mins(s.start) && m<=mins(s.end));
-  if(b)return {slot:b,frac:Math.max(0,Math.min(1,(m-mins(b.start))/(mins(b.end)-mins(b.start))))};
+  const ps=slots.filter(s=>s.type==='period'&&m>=mins(s.start)&&m<=mins(s.end)).sort((a,b)=>mins(b.start)-mins(a.start));
+  if(ps.length){const s=ps[0];return{slot:s,frac:Math.max(0,Math.min(1,(m-mins(s.start))/(mins(s.end)-mins(s.start))))}}
+  const b=slots.find(s=>s.type==='break'&&m>=mins(s.start)&&m<=mins(s.end));
+  if(b)return{slot:b,frac:Math.max(0,Math.min(1,(m-mins(b.start))/(mins(b.end)-mins(b.start))))};
   return null;
 }
 
@@ -66,11 +70,9 @@ function header(){
   const h=$('timeHeader'),slots=layout();
   h.innerHTML='';h.style.gridTemplateColumns=template(slots);
   slots.forEach(s=>{
-    const x=document.createElement('div');
-    x.style.gridColumn=s.col;
+    const x=document.createElement('div');x.style.gridColumn=s.col;
     if(s.type==='period'){
-      x.className='periodCell';
-      x.innerHTML=`<b>${esc(s.label)}</b><small>${s.start}–${s.end}</small>`;
+      x.className='periodCell';x.innerHTML=`<b>${esc(s.label)}</b><small>${s.start}–${s.end}</small>`;
     }else{
       x.className='breakCell';x.title=`Přestávka ${s.start}–${s.end}`;
     }
@@ -79,38 +81,35 @@ function header(){
 }
 
 function lesson(track,e,meta,slots){
-  const s=periodSlotForEvent(e,slots); if(!s)return;
+  const s=periodSlotForEvent(e,slots);if(!s)return;
   const x=document.createElement('div');
   x.className='lesson'+(meta.changed?' changed':'')+(e.status==='cancelled'?' cancelled':'');
-  x.style.gridColumn=s.col;
-  x.style.background=data.colors?.[e.class]||data.colors?.default||'#ddd';
+  x.style.gridColumn=s.col;x.style.background=data.colors?.[e.class]||data.colors?.default||'#ddd';
   x.dataset.start=e.start;x.dataset.end=e.end;
-  const showTime=(e.start!==s.start||e.end!==s.end) ? `<span class="etime">${esc(e.start)}–${esc(e.end)}</span>`:'';
+  const showTime=(e.start!==s.start||e.end!==s.end)?`<span class="etime">${esc(e.start)}–${esc(e.end)}</span>`:'';
   x.innerHTML=`<span class="room">${esc(e.room)}</span>${showTime}<span class="subj">${esc(e.subject)}</span>${e.note?`<span class="note">${esc(e.note)}</span>`:''}<span class="cls">${esc(e.class)}</span>`;
-  x.onclick=ev=>{ev.stopPropagation();opt.edit?.(e,{...meta,kind:e.kind||'lesson'})};
-  track.appendChild(x)
+  x.onclick=ev=>{ev.stopPropagation();opt.edit?.(e,{...meta,kind:e.kind||'lesson'})};track.appendChild(x);
 }
 
 function duty(track,e,meta,slots){
-  const s=breakSlotForEvent(e,slots); if(!s)return;
+  const s=breakSlotForEvent(e,slots);if(!s)return;
   const x=document.createElement('div');
   x.className='duty'+(meta.changed?' changed':'')+(e.status==='cancelled'?' cancelled':'');
   x.style.gridColumn=s.col;x.dataset.start=e.start;x.dataset.end=e.end;
   x.title=`Dohled ${e.start}–${e.end}${e.room?' • '+e.room:''}${e.note?' • '+e.note:''}`;
   x.innerHTML=`<span>${esc(e.room||e.note||'DOHLED')}</span>`;
-  x.onclick=ev=>{ev.stopPropagation();opt.edit?.(e,{...meta,kind:'duty'})};
-  track.appendChild(x);
+  x.onclick=ev=>{ev.stopPropagation();opt.edit?.(e,{...meta,kind:'duty'})};track.appendChild(x);
 }
 
 function render(){
   if(!data)return;
-  const slots=layout(),tpl=template(slots);
+  const slots=layout(),tpl=template(slots),today=iso(new Date());
   $('weekLabel').textContent=`${fmt(week)} – ${fmt(add(week,4))}`;
-  const sched=document.querySelector('.sched');if(sched)sched.style.minWidth=(95+slots.reduce((a,s)=>a+s.width,0))+'px';
+  const sched=document.querySelector('.sched');if(sched)sched.style.minWidth=(dayWidth()+slots.reduce((a,s)=>a+s.width,0))+'px';
   const box=$('days');box.innerHTML='';
   for(let d=1;d<=5;d++){
     const date=add(week,d-1),k=iso(date),c=ch(k),row=document.createElement('div');
-    row.className='row'+(c.absence?' absent':'');
+    row.className='row'+(c.absence?' absent':'')+(k===today?' today':'');
     const dl=document.createElement('div');dl.className='day';dl.innerHTML=`<b>${days[d]}</b><small>${fmt(date)}</small>`;
     if(opt.absence)dl.onclick=()=>opt.absence(k);row.appendChild(dl);
     const tr=document.createElement('div');tr.className='track';tr.style.gridTemplateColumns=tpl;
@@ -119,6 +118,7 @@ function render(){
       slots.forEach(s=>{
         const z=document.createElement('button');z.type='button';z.className='slotHit '+(s.type==='break'?'breakHit':'periodHit');z.style.gridColumn=s.col;
         z.title=s.type==='period'?`${s.label}. hodina ${s.start}–${s.end}`:`Přestávka ${s.start}–${s.end} – přidat dohled`;
+        z.setAttribute('aria-label',z.title);
         z.onclick=ev=>{ev.stopPropagation();opt.add(k,s.start,s.end,{kind:s.type==='break'?'duty':'lesson',period:s.type==='period'?s.label:null})};
         tr.appendChild(z);
       });
@@ -139,7 +139,7 @@ function render(){
     const ln=document.createElement('div');ln.className='line';ln.id='n-'+k;tr.appendChild(ln);
     row.appendChild(tr);box.appendChild(row)
   }
-  nowline()
+  nowline();
 }
 
 function nowline(){
@@ -153,10 +153,23 @@ function nowline(){
   if(row&&!row.classList.contains('absent'))row.querySelectorAll('.lesson,.duty').forEach(x=>{if(m>=mins(x.dataset.start)&&m<mins(x.dataset.end))x.classList.add('now')})
 }
 
+function scrollToNow(smooth=false){
+  const n=new Date();
+  if(monday(n).getTime()!==week.getTime())return;
+  const m=n.getHours()*60+n.getMinutes(),slots=layout(),a=activeSlot(m,slots),shell=document.querySelector('.shell');
+  if(!a||!shell)return;
+  const i=slots.indexOf(a.slot),before=slots.slice(0,i).reduce((sum,s)=>sum+s.width,0),x=dayWidth()+before+a.frac*a.slot.width;
+  shell.scrollTo({left:Math.max(0,x-shell.clientWidth*.45),behavior:smooth?'smooth':'auto'});
+}
+
 function nav(){
   $('prevWeek').onclick=()=>{week=add(week,-7);render()};
   $('nextWeek').onclick=()=>{week=add(week,7);render()};
-  $('todayBtn').onclick=()=>{week=monday(new Date());render()}
+  $('todayBtn').onclick=()=>{week=monday(new Date());render();requestAnimationFrame(()=>scrollToNow(true))};
+}
+function bindResize(){
+  if(resizeBound)return;resizeBound=true;let last=narrow(),timer;
+  window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>{const cur=narrow();if(cur!==last){last=cur;header();render();requestAnimationFrame(()=>scrollToNow(false))}},120)},{passive:true});
 }
 
 async function load(options={}){
@@ -165,7 +178,7 @@ async function load(options={}){
   if(!r.ok)throw Error('HTTP '+r.status);
   data=normalize(await r.json());
   $('pageTitle').textContent=data.teacher+' – '+(options.admin?'admin rozvrhu':'rozvrh');
-  header();nav();render();setInterval(nowline,15000);return data
+  header();nav();bindResize();render();setInterval(nowline,15000);requestAnimationFrame(()=>scrollToNow(false));return data;
 }
 
 return{
@@ -173,6 +186,6 @@ return{
   change:k=>{data.changes??={};return data.changes[k]??={}},
   cleanup:k=>{let c=data.changes?.[k];if(c&&!c.absence&&!Object.keys(c.events||{}).length&&!(c.custom||[]).length)delete data.changes[k]},
   week:()=>week,setWeek:x=>{week=x;render()},iso,add,monday,mins,tm,
-  periods:()=>data?.periods||[],layout
+  periods:()=>data?.periods||[],layout,scrollToNow
 };
 })();
