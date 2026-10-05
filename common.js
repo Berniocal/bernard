@@ -11,10 +11,10 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 let week=monday(new Date());
 
 const DEFAULT_DUTIES=[
-  {id:'du-mo-0750',day:1,start:'07:50',end:'08:00',subject:'DOHLED',class:'',room:'2CŽ',kind:'duty'},
-  {id:'du-mo-1140',day:1,start:'11:40',end:'11:50',subject:'DOHLED',class:'',room:'2CŽ',kind:'duty'},
-  {id:'du-tu-1305',day:2,start:'13:05',end:'13:15',subject:'DOHLED',class:'',room:'TŽ',kind:'duty'},
-  {id:'du-th-0845',day:4,start:'08:45',end:'08:55',subject:'DOHLED',class:'',room:'1ZJ',kind:'duty'}
+  {id:'du-mo-0750',day:1,start:'07:50',end:'08:00',subject:'DOHLED',class:'',room:'2ČŽ',kind:'duty'},
+  {id:'du-mo-1140',day:1,start:'11:40',end:'11:50',subject:'DOHLED',class:'',room:'2ČŽ',kind:'duty'},
+  {id:'du-tu-1305',day:2,start:'13:05',end:'13:15',subject:'DOHLED',class:'',room:'1ZŽ',kind:'duty'},
+  {id:'du-th-0845',day:4,start:'08:45',end:'08:55',subject:'DOHLED',class:'',room:'1ZŽ',kind:'duty'}
 ];
 
 function normalize(x){
