@@ -394,13 +394,13 @@
       ],
       "events": {
         "th5a": {
-          "subject": "2p 5a+5b",
+          "subject": "OBĚD",
           "class": "",
           "room": "",
           "start": "11:50",
           "end": "12:35",
           "note": "",
-          "status": "cancelled",
+          "status": "normal",
           "kind": "lesson"
         }
       }
