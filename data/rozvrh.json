@@ -279,6 +279,56 @@
       "subject": "MAT",
       "class": "3A8",
       "room": "123"
+    },
+    {
+      "id": "lunch-mo",
+      "day": 1,
+      "start": "11:50",
+      "end": "12:20",
+      "subject": "OBĚD",
+      "class": "",
+      "room": "",
+      "kind": "lunch"
+    },
+    {
+      "id": "lunch-tu",
+      "day": 2,
+      "start": "11:50",
+      "end": "12:20",
+      "subject": "OBĚD",
+      "class": "",
+      "room": "",
+      "kind": "lunch"
+    },
+    {
+      "id": "lunch-we",
+      "day": 3,
+      "start": "11:50",
+      "end": "12:20",
+      "subject": "OBĚD",
+      "class": "",
+      "room": "",
+      "kind": "lunch"
+    },
+    {
+      "id": "lunch-th",
+      "day": 4,
+      "start": "10:55",
+      "end": "11:40",
+      "subject": "OBĚD",
+      "class": "",
+      "room": "",
+      "kind": "lunch"
+    },
+    {
+      "id": "lunch-fr",
+      "day": 5,
+      "start": "11:50",
+      "end": "12:20",
+      "subject": "OBĚD",
+      "class": "",
+      "room": "",
+      "kind": "lunch"
     }
   ],
   "changes": {
