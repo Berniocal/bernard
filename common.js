@@ -83,7 +83,7 @@ function header(){
 function lesson(track,e,meta,slots){
   const s=periodSlotForEvent(e,slots);if(!s)return;
   const x=document.createElement('div');
-  x.className='lesson'+(meta.changed?' changed':'')+(e.status==='cancelled'?' cancelled':'');
+  x.className='lesson'+(e.kind==='lunch'?' lunch':'')+(meta.changed?' changed':'')+(e.status==='cancelled'?' cancelled':'');
   x.style.gridColumn=s.col;x.style.background=data.colors?.[e.class]||data.colors?.default||'#ddd';
   x.dataset.start=e.start;x.dataset.end=e.end;
   const showTime=(e.start!==s.start||e.end!==s.end)?`<span class="etime">${esc(e.start)}–${esc(e.end)}</span>`:'';
