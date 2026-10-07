@@ -382,6 +382,8 @@
           "end": "11:40",
           "note": "Suplování",
           "status": "normal",
+          "kind": "lesson",
+          "test": true,
           "id": "c1791188996181"
         },
         {
@@ -392,6 +394,8 @@
           "end": "14:00",
           "note": "Suplování",
           "status": "normal",
+          "kind": "lesson",
+          "test": true,
           "id": "c1791189133092"
         }
       ],
@@ -427,6 +431,32 @@
           "end": "13:05",
           "note": "Volby",
           "status": "cancelled"
+        },
+        "fr4": {
+          "subject": "FYZ",
+          "class": "1E4",
+          "room": "322",
+          "start": "10:55",
+          "end": "11:40",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        }
+      }
+    },
+    "2026-10-07": {
+      "events": {
+        "we1": {
+          "subject": "MAT",
+          "class": "3A8",
+          "room": "123",
+          "start": "08:00",
+          "end": "08:45",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
         }
       }
     }
