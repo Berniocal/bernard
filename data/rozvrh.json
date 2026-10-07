@@ -106,7 +106,8 @@
       "end": "08:45",
       "subject": "FYZ",
       "class": "2A4",
-      "room": "322"
+      "room": "322",
+      "cycleTag": "JAZ"
     },
     {
       "id": "tu2",
@@ -169,7 +170,8 @@
       "end": "11:40",
       "subject": "FYZ",
       "class": "1A4",
-      "room": "322"
+      "room": "322",
+      "cycleTag": "JAZ"
     },
     {
       "id": "we5b",
@@ -196,7 +198,8 @@
       "end": "14:55",
       "subject": "FYZ",
       "class": "3A6",
-      "room": "322"
+      "room": "322",
+      "cycleTag": "JAZ"
     },
     {
       "id": "th2",
@@ -233,7 +236,7 @@
       "subject": "FYZ",
       "class": "1E4",
       "room": "322",
-      "note": "LAB2"
+      "cycleTag": "LAB"
     },
     {
       "id": "th7",
