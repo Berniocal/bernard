@@ -26,6 +26,15 @@ function normalize(x){
 }
 function ch(k){return data.changes?.[k]||{}}
 function fmt(d){return d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'})}
+function isoWeekNum(d){
+  const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  x.setUTCDate(x.getUTCDate()+4-(x.getUTCDay()||7));
+  const y=new Date(Date.UTC(x.getUTCFullYear(),0,1));
+  return Math.ceil((((x-y)/86400000)+1)/7);
+}
+function cycleLabel(e){
+  return e.cycleTag ? e.cycleTag+(isoWeekNum(week)%2===1?'1':'2') : '';
+}
 function dayWidth(){
   const v=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--day-w'));
   return Number.isFinite(v)?v:(narrow()?72:95);
@@ -87,7 +96,8 @@ function lesson(track,e,meta,slots){
   x.style.gridColumn=s.col;x.style.background=data.colors?.[e.class]||data.colors?.default||'#ddd';
   x.dataset.start=e.start;x.dataset.end=e.end;
   const showTime=(e.start!==s.start||e.end!==s.end)?`<span class="etime">${esc(e.start)}–${esc(e.end)}</span>`:'';
-  x.innerHTML=`<span class="room">${esc(e.room)}</span>${showTime}<span class="subj">${esc(e.subject)}</span>${e.note?`<span class="note">${esc(e.note)}</span>`:''}<span class="cls">${esc(e.class)}</span>`;
+  const tag=cycleLabel(e);
+  x.innerHTML=`${tag?`<span class="cycleTag">${esc(tag)}</span>`:''}<span class="room">${esc(e.room)}</span>${e.test?`<span class="testmark">TEST</span>`:''}${showTime}<span class="subj">${esc(e.subject)}</span>${e.note?`<span class="note">${esc(e.note)}</span>`:''}<span class="cls">${esc(e.class)}</span>`;
   x.onclick=ev=>{ev.stopPropagation();opt.edit?.(e,{...meta,kind:e.kind||'lesson'})};track.appendChild(x);
 }
 
