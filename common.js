@@ -65,6 +65,7 @@ function tabEventName(e){
   if(e.kind==='duty')return 'DOHLED'+(e.room?' • '+e.room:'');
   if(e.kind==='lunch')return 'OBĚD';
   let s=e.subject||'UDÁLOST';
+  if(e.room)s+=' • '+e.room;
   if(e.class)s+=' • '+e.class;
   if(e.test)s+=' • TEST';
   return s;
