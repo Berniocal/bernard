@@ -69,14 +69,26 @@ function tabEventName(e){
   if(e.test)s+=' • TEST';
   return s;
 }
+function eventPriority(e){
+  if(e.kind==='absence')return 100;
+  if(e.kind==='lunch')return 10;
+  if(e.kind==='duty')return 20;
+  return 30;
+}
 function currentEventAt(date){
   const events=effectiveEventsForDate(date),m=date.getHours()*60+date.getMinutes();
   return events
     .filter(e=>m>=mins(e.start)&&m<mins(e.end))
-    .sort((a,b)=>{
-      const pa=(a.kind==='lunch'?0:1)+(a.kind==='duty'?1:0),pb=(b.kind==='lunch'?0:1)+(b.kind==='duty'?1:0);
-      return pb-pa||mins(b.start)-mins(a.start);
-    })[0]||null;
+    .sort((a,b)=>eventPriority(b)-eventPriority(a)||mins(b.start)-mins(a.start))[0]||null;
+}
+function nextEventAt(date){
+  const events=effectiveEventsForDate(date),m=date.getHours()*60+date.getMinutes();
+  const future=events.filter(e=>mins(e.start)>m);
+  if(!future.length)return null;
+  const firstStart=Math.min(...future.map(e=>mins(e.start)));
+  return future
+    .filter(e=>mins(e.start)===firstStart)
+    .sort((a,b)=>eventPriority(b)-eventPriority(a)||mins(a.end)-mins(b.end))[0]||null;
 }
 function eventKey(e,date){
   return e?(iso(date)+'|'+(e.id||e.kind||e.subject||'event')+'|'+e.start+'|'+e.end):'';
@@ -87,7 +99,7 @@ function normalTabTitle(date=new Date()){
   if(!events.length)return'Rozvrh – '+(data.teacher||'');
   const current=currentEventAt(date);
   if(current)return current.kind==='absence'?tabEventName(current):current.start+' '+tabEventName(current);
-  const next=events.find(e=>mins(e.start)>m);
+  const next=nextEventAt(date);
   return next?'→ '+next.start+' '+tabEventName(next):'Volno – '+(data.teacher||'Rozvrh');
 }
 function updateAlertButton(){
