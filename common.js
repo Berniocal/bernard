@@ -9,7 +9,7 @@ const mins=t=>{let[a,b]=t.split(':').map(Number);return a*60+b};
 const tm=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const narrow=()=>window.matchMedia('(max-width:700px)').matches;
-let week=monday(new Date()),resizeBound=false;
+let week=monday(new Date()),resizeBound=false,dataFingerprint='';
 let audioCtx=null,lastActiveKey=null,alertInitialized=false,flashUntil=0,flashPhase=false;
 let soundEnabled=localStorage.getItem('bernard_alert_sound')==='1';
 
@@ -309,13 +309,31 @@ function bindResize(){
   window.addEventListener('resize',()=>{clearTimeout(timer);timer=setTimeout(()=>{const cur=narrow();if(cur!==last){last=cur;header();render();requestAnimationFrame(()=>scrollToNow(false))}},120)},{passive:true});
 }
 
+async function refreshFromServer(){
+  if(opt.admin)return;
+  try{
+    const r=await fetch('data/rozvrh.json?v='+Date.now(),{cache:'no-store'});
+    if(!r.ok)return;
+    const fresh=normalize(await r.json()),fp=JSON.stringify(fresh);
+    if(fp===dataFingerprint)return;
+    data=fresh;dataFingerprint=fp;
+    header();render();monitorEventStart();
+  }catch(_){}
+}
+function bindAutoRefresh(){
+  if(opt.admin)return;
+  setInterval(refreshFromServer,30000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshFromServer()});
+  window.addEventListener('focus',refreshFromServer);
+}
+
 async function load(options={}){
   opt=options;
   const r=await fetch('data/rozvrh.json?v='+Date.now(),{cache:'no-store'});
   if(!r.ok)throw Error('HTTP '+r.status);
-  data=normalize(await r.json());
+  data=normalize(await r.json());dataFingerprint=JSON.stringify(data);
   $('pageTitle').textContent=data.teacher+' – '+(options.admin?'admin rozvrhu':'rozvrh');
-  header();nav();bindResize();bindAlerts();render();monitorEventStart();setInterval(nowline,15000);requestAnimationFrame(()=>scrollToNow(false));return data;
+  header();nav();bindResize();bindAlerts();bindAutoRefresh();render();monitorEventStart();setInterval(nowline,15000);requestAnimationFrame(()=>scrollToNow(false));return data;
 }
 
 return{
@@ -323,6 +341,6 @@ return{
   change:k=>{data.changes??={};return data.changes[k]??={}},
   cleanup:k=>{let c=data.changes?.[k];if(c&&!c.absence&&!Object.keys(c.events||{}).length&&!(c.custom||[]).length)delete data.changes[k]},
   week:()=>week,setWeek:x=>{week=x;render()},iso,add,monday,mins,tm,
-  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle,monitorEventStart
+  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle,monitorEventStart,refreshFromServer
 };
 })();
