@@ -41,6 +41,23 @@ function dayWidth(){
   const v=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--day-w'));
   return Number.isFinite(v)?v:(narrow()?72:95);
 }
+function fiveBStart(){
+  return (data.periods||[]).find(p=>p.label==='5b')?.start||'12:20';
+}
+function clipAtFiveB(events){
+  const cut=fiveBStart(),cm=mins(cut);
+  const hasFiveB=events.some(e=>e.status!=='cancelled'&&e.kind!=='duty'&&e.start===cut);
+  if(!hasFiveB)return events;
+  return events.map(e=>{
+    if(e.status!=='cancelled'&&e.kind!=='duty'&&mins(e.start)<cm&&mins(e.end)>cm)return{...e,end:cut,_clippedAtFiveB:true};
+    return e;
+  });
+}
+function eventForDisplay(e,dateKey){
+  if(!e?.id)return e;
+  const d=new Date(dateKey+'T12:00:00');
+  return effectiveEventsForDate(d).find(x=>x.id===e.id)||e;
+}
 
 function effectiveEventsForDate(date){
   const d=date.getDay();
@@ -58,7 +75,7 @@ function effectiveEventsForDate(date){
     if(e.status!=='cancelled')out.push(e);
   });
   (c.custom||[]).forEach(e=>{if(e.status!=='cancelled')out.push(e)});
-  return out.sort((a,b)=>mins(a.start)-mins(b.start)||mins(a.end)-mins(b.end));
+  return clipAtFiveB(out).sort((a,b)=>mins(a.start)-mins(b.start)||mins(a.end)-mins(b.end));
 }
 function tabEventName(e){
   if(e.kind==='absence')return e.note?'NEPŘÍTOMEN • '+e.note:'NEPŘÍTOMEN';
@@ -245,6 +262,16 @@ function lesson(track,e,meta,slots){
   const x=document.createElement('div');
   x.className='lesson'+(e.kind==='lunch'?' lunch':'')+(meta.changed?' changed':'')+(e.status==='cancelled'?' cancelled':'');
   x.style.gridColumn=s.col;x.style.background=data.colors?.[e.class]||data.colors?.default||'#ddd';
+  const sm=mins(s.start),em=mins(s.end),es=Math.max(sm,mins(e.start)),ee=Math.min(em,mins(e.end));
+  const startPct=Math.max(0,Math.min(100,(es-sm)/(em-sm)*100));
+  const endPct=Math.max(startPct,Math.min(100,(ee-sm)/(em-sm)*100));
+  if(startPct>0.01||endPct<99.99){
+    const w=Math.max(8,endPct-startPct);
+    x.style.justifySelf='start';
+    x.style.width=`calc(${w}% - 4px)`;
+    x.style.marginLeft=`calc(${startPct}% + 2px)`;
+    x.style.marginRight='0';
+  }
   x.dataset.start=e.start;x.dataset.end=e.end;
   const showTime=(e.start!==s.start||e.end!==s.end)?`<span class="etime">${esc(e.start)}–${esc(e.end)}</span>`:'';
   const tag=cycleLabel(e);
@@ -286,14 +313,15 @@ function render(){
     }
 
     data.schedule.filter(e=>e.day===d).forEach(base=>{
-      const over=c.events?.[base.id],e=over?{...base,...over}:base;
+      const over=c.events?.[base.id],raw=over?{...base,...over}:base,e=eventForDisplay(raw,k);
       if((e.kind||'lesson')==='duty')duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);else lesson(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots)
     });
     (data.duties||[]).filter(e=>e.day===d).forEach(base=>{
-      const over=c.events?.[base.id],e=over?{...base,...over,kind:'duty'}:base;
+      const over=c.events?.[base.id],raw=over?{...base,...over,kind:'duty'}:base,e=eventForDisplay(raw,k);
       duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots)
     });
-    (c.custom||[]).forEach(e=>{
+    (c.custom||[]).forEach(raw=>{
+      const e=eventForDisplay(raw,k);
       if(e.kind==='duty')duty(tr,e,{date:k,id:e.id,type:'custom',changed:true},slots);else lesson(tr,e,{date:k,id:e.id,type:'custom',changed:true},slots)
     });
     if(c.absence){const ab=document.createElement('div');ab.className='absence';ab.textContent='NEPŘÍTOMEN'+(c.absence.note?' – '+c.absence.note:'');ab.onclick=()=>opt.absence?.(k);tr.appendChild(ab)}
