@@ -459,6 +459,88 @@
           "test": true
         }
       }
+    },
+    "2026-10-12": {
+      "events": {
+        "mo1": {
+          "subject": "FYZ",
+          "class": "3A6",
+          "room": "302",
+          "start": "08:00",
+          "end": "08:45",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        },
+        "mo5b": {
+          "subject": "FYZ",
+          "class": "1A4",
+          "room": "154",
+          "start": "12:20",
+          "end": "13:05",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        }
+      }
+    },
+    "2026-10-14": {
+      "events": {
+        "we3": {
+          "subject": "FYZ",
+          "class": "1E4",
+          "room": "102",
+          "start": "10:00",
+          "end": "10:45",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        },
+        "we5b": {
+          "subject": "MAT",
+          "class": "6A8",
+          "room": "216",
+          "start": "12:20",
+          "end": "13:05",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        }
+      }
+    },
+    "2026-10-13": {
+      "events": {
+        "tu5b": {
+          "subject": "MAT",
+          "class": "3A8",
+          "room": "123",
+          "start": "12:20",
+          "end": "13:05",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        }
+      }
+    },
+    "2026-10-16": {
+      "events": {
+        "fr3": {
+          "subject": "FYZ",
+          "class": "2A4",
+          "room": "322",
+          "start": "10:00",
+          "end": "10:45",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        }
+      }
     }
   },
   "duties": [
