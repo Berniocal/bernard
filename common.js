@@ -40,6 +40,58 @@ function dayWidth(){
   return Number.isFinite(v)?v:(narrow()?72:95);
 }
 
+function effectiveEventsForDate(date){
+  const d=date.getDay();
+  if(d<1||d>5)return[];
+  const k=iso(date),c=ch(k);
+  if(c.absence)return[{subject:'NEPŘÍTOMEN',start:'00:00',end:'23:59',kind:'absence',note:c.absence.note||''}];
+
+  const out=[];
+  (data.schedule||[]).filter(e=>e.day===d).forEach(base=>{
+    const over=c.events?.[base.id],e=over?{...base,...over}:base;
+    if(e.status!=='cancelled')out.push(e);
+  });
+  (data.duties||[]).filter(e=>e.day===d).forEach(base=>{
+    const over=c.events?.[base.id],e=over?{...base,...over,kind:'duty'}:base;
+    if(e.status!=='cancelled')out.push(e);
+  });
+  (c.custom||[]).forEach(e=>{if(e.status!=='cancelled')out.push(e)});
+  return out.sort((a,b)=>mins(a.start)-mins(b.start)||mins(a.end)-mins(b.end));
+}
+function tabEventName(e){
+  if(e.kind==='absence')return e.note?'NEPŘÍTOMEN • '+e.note:'NEPŘÍTOMEN';
+  if(e.kind==='duty')return 'DOHLED'+(e.room?' • '+e.room:'');
+  if(e.kind==='lunch')return 'OBĚD';
+  let s=e.subject||'UDÁLOST';
+  if(e.class)s+=' • '+e.class;
+  if(e.test)s+=' • TEST';
+  return s;
+}
+function updateTabTitle(){
+  if(!data)return;
+  const n=new Date(),events=effectiveEventsForDate(n),m=n.getHours()*60+n.getMinutes();
+  if(!events.length){document.title='Rozvrh – '+(data.teacher||'');return}
+
+  const current=events
+    .filter(e=>m>=mins(e.start)&&m<mins(e.end))
+    .sort((a,b)=>{
+      const pa=(a.kind==='lunch'?0:1)+(a.kind==='duty'?1:0),pb=(b.kind==='lunch'?0:1)+(b.kind==='duty'?1:0);
+      return pb-pa||mins(b.start)-mins(a.start);
+    })[0];
+
+  if(current){
+    document.title=current.kind==='absence'
+      ? tabEventName(current)
+      : current.start+' '+tabEventName(current);
+    return;
+  }
+
+  const next=events.find(e=>mins(e.start)>m);
+  document.title=next
+    ? '→ '+next.start+' '+tabEventName(next)
+    : 'Volno – '+(data.teacher||'Rozvrh');
+}
+
 function layout(){
   const p=data.periods||[],slots=[];
   const mobile=narrow(),periodWidth=mobile?112:150,breakMin=mobile?36:22,breakFactor=mobile?3.4:2.5;
@@ -156,6 +208,7 @@ function nowline(){
   document.querySelectorAll('.line').forEach(x=>{x.style.display='none';x.style.removeProperty('grid-column')});
   document.querySelectorAll('.lesson.now,.duty.now').forEach(x=>x.classList.remove('now'));
   if(!data)return;
+  updateTabTitle();
   const n=new Date(),k=iso(n),ln=$('n-'+k);if(!ln)return;
   const m=n.getHours()*60+n.getMinutes(),a=activeSlot(m,layout());if(!a)return;
   ln.style.display='block';ln.style.gridColumn=String(a.slot.col);ln.style.setProperty('--frac',String(a.frac));ln.dataset.time=tm(m);
@@ -196,6 +249,6 @@ return{
   change:k=>{data.changes??={};return data.changes[k]??={}},
   cleanup:k=>{let c=data.changes?.[k];if(c&&!c.absence&&!Object.keys(c.events||{}).length&&!(c.custom||[]).length)delete data.changes[k]},
   week:()=>week,setWeek:x=>{week=x;render()},iso,add,monday,mins,tm,
-  periods:()=>data?.periods||[],layout,scrollToNow
+  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle
 };
 })();
