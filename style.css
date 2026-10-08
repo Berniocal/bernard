@@ -90,3 +90,7 @@ body.event-start .shell{animation:eventStartFlash .6s ease-in-out 0s 6}
 body.event-start #pageTitle{animation:eventStartText .6s ease-in-out 0s 6}
 @keyframes eventStartText{0%,100%{opacity:1}50%{opacity:.28}}
 @media(max-width:700px){.eventToast{top:8px;font-size:12px;padding:9px 11px}.alertToggle{flex:1 1 auto}}
+
+body.event-start::before{content:"";position:fixed;inset:0;z-index:9998;pointer-events:none;border:8px solid rgba(22,119,255,.9);background:rgba(22,119,255,.08);animation:eventScreenFlash .55s ease-in-out 0s 8}
+@keyframes eventScreenFlash{0%,100%{opacity:0}50%{opacity:1}}
+.alertToggle.waiting{background:#fff8e1;border-color:#d5ad45;color:#795700}
