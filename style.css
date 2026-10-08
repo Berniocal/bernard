@@ -81,3 +81,12 @@ dialog{border:0;border-radius:12px;padding:0;width:min(510px,calc(100% - 24px));
   .top .controls>a.btn{flex:1 1 auto}
   .adminbox .btn{flex-basis:100%}
 }
+
+.alertToggle.on{background:#eef8f0;border-color:#9bc5a4;color:#176b35}
+.eventToast{position:fixed;left:50%;top:16px;transform:translate(-50%,-18px);z-index:9999;background:#18202a;color:#fff;border-radius:10px;padding:10px 14px;font-weight:750;box-shadow:0 8px 28px #0004;opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;white-space:nowrap;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
+.eventToast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes eventStartFlash{0%,100%{box-shadow:0 0 0 0 rgba(22,119,255,0)}50%{box-shadow:0 0 0 5px rgba(22,119,255,.42)}}
+body.event-start .shell{animation:eventStartFlash .6s ease-in-out 0s 6}
+body.event-start #pageTitle{animation:eventStartText .6s ease-in-out 0s 6}
+@keyframes eventStartText{0%,100%{opacity:1}50%{opacity:.28}}
+@media(max-width:700px){.eventToast{top:8px;font-size:12px;padding:9px 11px}.alertToggle{flex:1 1 auto}}
