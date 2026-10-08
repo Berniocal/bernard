@@ -10,7 +10,7 @@ const tm=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const narrow=()=>window.matchMedia('(max-width:700px)').matches;
 let week=monday(new Date()),resizeBound=false,dataFingerprint='';
-let audioCtx=null,lastActiveKey=null,alertInitialized=false,flashUntil=0,flashPhase=false;
+let audioCtx=null,flashUntil=0,flashPhase=false;
 let soundEnabled=localStorage.getItem('bernard_alert_sound')==='1';
 
 const DEFAULT_DUTIES=[
@@ -105,9 +105,11 @@ function normalTabTitle(date=new Date()){
 }
 function updateAlertButton(){
   const b=$('alertToggle');if(!b)return;
-  b.textContent=soundEnabled?'🔔 Zvuk zapnut':'🔕 Zvuk vypnut';
+  const ready=soundEnabled&&audioCtx&&audioCtx.state==='running';
+  b.textContent=!soundEnabled?'🔕 Zvuk vypnut':(ready?'🔔 Zvuk zapnut':'🔔 Zvuk – klikni');
   b.classList.toggle('on',soundEnabled);
-  b.title=soundEnabled?'Zvuk při začátku události je zapnutý':'Kliknutím zapneš zvuk při začátku události';
+  b.classList.toggle('waiting',soundEnabled&&!ready);
+  b.title=!soundEnabled?'Kliknutím zapneš zvuk při začátku události':(ready?'Zvuk při začátku události je připravený':'Prohlížeč potřebuje jeden klik na stránku, aby povolil zvuk');
 }
 function unlockAudio(){
   if(!soundEnabled)return;
@@ -115,7 +117,8 @@ function unlockAudio(){
     const AC=window.AudioContext||window.webkitAudioContext;
     if(!AC)return;
     if(!audioCtx)audioCtx=new AC();
-    if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+    if(audioCtx.state==='suspended')audioCtx.resume().then(updateAlertButton).catch(()=>{});
+    else updateAlertButton();
   }catch(_){}
 }
 function beep(preview=false){
@@ -146,14 +149,22 @@ function flashEventStart(e){
   clearTimeout(flashEventStart._timer);
   flashEventStart._timer=setTimeout(()=>{document.body.classList.remove('event-start');t.classList.remove('show')},10000);
 }
+function eventStartTime(e,date){
+  const [h,m]=e.start.split(':').map(Number);
+  return new Date(date.getFullYear(),date.getMonth(),date.getDate(),h,m,0,0).getTime();
+}
 function monitorEventStart(){
   if(!data)return;
-  const n=new Date(),e=currentEventAt(n),key=eventKey(e,n),m=n.getHours()*60+n.getMinutes();
-  if(!alertInitialized){lastActiveKey=key;alertInitialized=true;return}
-  if(key!==lastActiveKey){
-    const justStarted=e&&e.kind!=='absence'&&(m-mins(e.start)>=0)&&(m-mins(e.start)<=2);
-    lastActiveKey=key;
-    if(justStarted){flashEventStart(e);beep(false)}
+  const n=new Date(),e=currentEventAt(n),key=eventKey(e,n);
+  if(e&&e.kind!=='absence'){
+    const age=Date.now()-eventStartTime(e,n);
+    const last=sessionStorage.getItem('bernard_last_alert_key')||'';
+    // Up to 5 minutes late on purpose: background/sleeping tabs may be throttled by the browser.
+    if(age>=0&&age<=5*60*1000&&key!==last){
+      sessionStorage.setItem('bernard_last_alert_key',key);
+      flashEventStart(e);
+      beep(false);
+    }
   }
   if(Date.now()<flashUntil){
     flashPhase=!flashPhase;
@@ -172,6 +183,7 @@ function bindAlerts(){
     if(soundEnabled){unlockAudio();setTimeout(()=>beep(true),40)}
   };
   document.addEventListener('pointerdown',()=>{if(soundEnabled)unlockAudio()},{passive:true});
+  document.addEventListener('keydown',()=>{if(soundEnabled)unlockAudio()},{passive:true});
   setInterval(monitorEventStart,1000);
 }
 function updateTabTitle(){
