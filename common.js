@@ -10,6 +10,8 @@ const tm=m=>`${pad(Math.floor(m/60))}:${pad(m%60)}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const narrow=()=>window.matchMedia('(max-width:700px)').matches;
 let week=monday(new Date()),resizeBound=false;
+let audioCtx=null,lastActiveKey=null,alertInitialized=false,flashUntil=0,flashPhase=false;
+let soundEnabled=localStorage.getItem('bernard_alert_sound')==='1';
 
 const DEFAULT_DUTIES=[
   {id:'du-mo-0750',day:1,start:'07:50',end:'08:00',subject:'DOHLED',class:'',room:'2ČŽ',kind:'duty'},
@@ -67,29 +69,101 @@ function tabEventName(e){
   if(e.test)s+=' • TEST';
   return s;
 }
-function updateTabTitle(){
-  if(!data)return;
-  const n=new Date(),events=effectiveEventsForDate(n),m=n.getHours()*60+n.getMinutes();
-  if(!events.length){document.title='Rozvrh – '+(data.teacher||'');return}
-
-  const current=events
+function currentEventAt(date){
+  const events=effectiveEventsForDate(date),m=date.getHours()*60+date.getMinutes();
+  return events
     .filter(e=>m>=mins(e.start)&&m<mins(e.end))
     .sort((a,b)=>{
       const pa=(a.kind==='lunch'?0:1)+(a.kind==='duty'?1:0),pb=(b.kind==='lunch'?0:1)+(b.kind==='duty'?1:0);
       return pb-pa||mins(b.start)-mins(a.start);
-    })[0];
-
-  if(current){
-    document.title=current.kind==='absence'
-      ? tabEventName(current)
-      : current.start+' '+tabEventName(current);
-    return;
-  }
-
+    })[0]||null;
+}
+function eventKey(e,date){
+  return e?(iso(date)+'|'+(e.id||e.kind||e.subject||'event')+'|'+e.start+'|'+e.end):'';
+}
+function normalTabTitle(date=new Date()){
+  if(!data)return'Rozvrh';
+  const events=effectiveEventsForDate(date),m=date.getHours()*60+date.getMinutes();
+  if(!events.length)return'Rozvrh – '+(data.teacher||'');
+  const current=currentEventAt(date);
+  if(current)return current.kind==='absence'?tabEventName(current):current.start+' '+tabEventName(current);
   const next=events.find(e=>mins(e.start)>m);
-  document.title=next
-    ? '→ '+next.start+' '+tabEventName(next)
-    : 'Volno – '+(data.teacher||'Rozvrh');
+  return next?'→ '+next.start+' '+tabEventName(next):'Volno – '+(data.teacher||'Rozvrh');
+}
+function updateAlertButton(){
+  const b=$('alertToggle');if(!b)return;
+  b.textContent=soundEnabled?'🔔 Zvuk zapnut':'🔕 Zvuk vypnut';
+  b.classList.toggle('on',soundEnabled);
+  b.title=soundEnabled?'Zvuk při začátku události je zapnutý':'Kliknutím zapneš zvuk při začátku události';
+}
+function unlockAudio(){
+  if(!soundEnabled)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return;
+    if(!audioCtx)audioCtx=new AC();
+    if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  }catch(_){}
+}
+function beep(preview=false){
+  if(!soundEnabled)return;
+  unlockAudio();
+  if(!audioCtx||audioCtx.state!=='running')return;
+  const now=audioCtx.currentTime;
+  const tones=preview?[[0,660,.09]]:[[0,660,.12],[.18,880,.14]];
+  tones.forEach(([delay,freq,dur])=>{
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.setValueAtTime(freq,now+delay);
+    g.gain.setValueAtTime(.0001,now+delay);
+    g.gain.exponentialRampToValueAtTime(.13,now+delay+.015);
+    g.gain.exponentialRampToValueAtTime(.0001,now+delay+dur);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start(now+delay);o.stop(now+delay+dur+.02);
+  });
+}
+function flashEventStart(e){
+  flashUntil=Date.now()+10000;flashPhase=true;
+  document.body.classList.remove('event-start');
+  void document.body.offsetWidth;
+  document.body.classList.add('event-start');
+  let t=document.querySelector('.eventToast');
+  if(!t){t=document.createElement('div');t.className='eventToast';document.body.appendChild(t)}
+  t.textContent='Začíná '+e.start+' • '+tabEventName(e);
+  t.classList.add('show');
+  clearTimeout(flashEventStart._timer);
+  flashEventStart._timer=setTimeout(()=>{document.body.classList.remove('event-start');t.classList.remove('show')},10000);
+}
+function monitorEventStart(){
+  if(!data)return;
+  const n=new Date(),e=currentEventAt(n),key=eventKey(e,n),m=n.getHours()*60+n.getMinutes();
+  if(!alertInitialized){lastActiveKey=key;alertInitialized=true;return}
+  if(key!==lastActiveKey){
+    const justStarted=e&&e.kind!=='absence'&&(m-mins(e.start)>=0)&&(m-mins(e.start)<=2);
+    lastActiveKey=key;
+    if(justStarted){flashEventStart(e);beep(false)}
+  }
+  if(Date.now()<flashUntil){
+    flashPhase=!flashPhase;
+    document.title=flashPhase&&e?'🔔 ZAČÍNÁ: '+tabEventName(e):normalTabTitle(n);
+  }else if(flashUntil){
+    flashUntil=0;document.title=normalTabTitle(n);
+  }
+}
+function bindAlerts(){
+  updateAlertButton();
+  const b=$('alertToggle');
+  if(b)b.onclick=()=>{
+    soundEnabled=!soundEnabled;
+    localStorage.setItem('bernard_alert_sound',soundEnabled?'1':'0');
+    updateAlertButton();
+    if(soundEnabled){unlockAudio();setTimeout(()=>beep(true),40)}
+  };
+  document.addEventListener('pointerdown',()=>{if(soundEnabled)unlockAudio()},{passive:true});
+  setInterval(monitorEventStart,1000);
+}
+function updateTabTitle(){
+  if(!data||Date.now()<flashUntil)return;
+  document.title=normalTabTitle(new Date());
 }
 
 function layout(){
@@ -241,7 +315,7 @@ async function load(options={}){
   if(!r.ok)throw Error('HTTP '+r.status);
   data=normalize(await r.json());
   $('pageTitle').textContent=data.teacher+' – '+(options.admin?'admin rozvrhu':'rozvrh');
-  header();nav();bindResize();render();setInterval(nowline,15000);requestAnimationFrame(()=>scrollToNow(false));return data;
+  header();nav();bindResize();bindAlerts();render();monitorEventStart();setInterval(nowline,15000);requestAnimationFrame(()=>scrollToNow(false));return data;
 }
 
 return{
@@ -249,6 +323,6 @@ return{
   change:k=>{data.changes??={};return data.changes[k]??={}},
   cleanup:k=>{let c=data.changes?.[k];if(c&&!c.absence&&!Object.keys(c.events||{}).length&&!(c.custom||[]).length)delete data.changes[k]},
   week:()=>week,setWeek:x=>{week=x;render()},iso,add,monday,mins,tm,
-  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle
+  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle,monitorEventStart
 };
 })();
