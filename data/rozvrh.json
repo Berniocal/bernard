@@ -431,17 +431,6 @@
           "end": "13:05",
           "note": "Volby",
           "status": "cancelled"
-        },
-        "fr4": {
-          "subject": "FYZ",
-          "class": "1E4",
-          "room": "322",
-          "start": "10:55",
-          "end": "11:40",
-          "note": "",
-          "status": "normal",
-          "kind": "lesson",
-          "test": false
         }
       }
     },
