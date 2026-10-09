@@ -441,7 +441,7 @@
           "note": "",
           "status": "normal",
           "kind": "lesson",
-          "test": true
+          "test": false
         }
       }
     },
