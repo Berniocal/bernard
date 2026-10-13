@@ -513,6 +513,17 @@
           "status": "normal",
           "kind": "lesson",
           "test": true
+        },
+        "tu6": {
+          "subject": "FYZ",
+          "class": "2Š6",
+          "room": "352",
+          "start": "13:15",
+          "end": "14:00",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": false
         }
       }
     },
