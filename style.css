@@ -130,3 +130,12 @@ body.event-start::before{content:"";position:fixed;inset:0;z-index:9998;pointer-
 .fontactions{display:flex;justify-content:flex-end;margin-top:9px}
 @media(max-width:900px){.fontgrid{grid-template-columns:repeat(3,minmax(115px,1fr))}}
 @media(max-width:600px){.fontgrid{grid-template-columns:repeat(2,minmax(110px,1fr))}.fontitem input{width:58px}}
+
+.editmodebox{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#fff;border:1px solid #d9dee5;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.editmodebuttons{display:flex;gap:6px;flex:0 0 auto}
+.editmodebuttons .btn{min-width:130px}
+.modehelp{font-size:12px;color:#59616d;flex:1 1 360px}
+#baseMode.permanentActive{background:#9b2c2c;border-color:#9b2c2c;color:#fff}
+.permanent-mode .shell{box-shadow:0 0 0 2px rgba(155,44,44,.18)}
+.permanent-mode .day{background:#fff8f8}
+@media(max-width:600px){.editmodebox{align-items:stretch}.editmodebuttons{width:100%}.editmodebuttons .btn{flex:1 1 50%;min-width:0}.modehelp{font-size:11px}}
