@@ -94,3 +94,28 @@ body.event-start #pageTitle{animation:eventStartText .6s ease-in-out 0s 6}
 body.event-start::before{content:"";position:fixed;inset:0;z-index:9998;pointer-events:none;border:8px solid rgba(22,119,255,.9);background:rgba(22,119,255,.08);animation:eventScreenFlash .55s ease-in-out 0s 8}
 @keyframes eventScreenFlash{0%,100%{opacity:0}50%{opacity:1}}
 .alertToggle.waiting{background:#fff8e1;border-color:#d5ad45;color:#795700}
+
+
+/* TRUE_TIME_AXIS_V2: hodiny jsou umístěné podle skutečného času; 5a a 5b se překrývají */
+.head{display:block;position:relative;flex:0 0 auto;overflow:hidden}
+.periodCell,.breakCell{position:absolute;top:0;bottom:0}
+.periodCell{background:#fff}
+.breakCell{background:#f1f3f6}
+.track{display:block;right:auto;overflow:hidden}
+.breakBand{position:absolute;top:0;bottom:0;background:#f1f3f6;border-left:1px solid #e0e4e9;border-right:1px solid #e0e4e9;z-index:0}
+.timeGuide{position:absolute;top:0;bottom:0;width:1px;background:#edf0f3;z-index:0;pointer-events:none}
+.slotHit{position:absolute;top:0;bottom:0;height:100%}
+.lesson{position:absolute;top:6px;margin:0;height:88px;z-index:5}
+.lesson.lunch{top:auto;bottom:5px;margin:0;height:32px}
+.duty{position:absolute;top:21px;margin:0;height:58px;z-index:7}
+.overlapBand{position:absolute;top:0;bottom:0;pointer-events:none;z-index:6;background:repeating-linear-gradient(-45deg,rgba(95,105,120,.04) 0,rgba(95,105,120,.04) 5px,rgba(95,105,120,.18) 5px,rgba(95,105,120,.18) 10px)}
+.overlapHeader{z-index:8;opacity:.7}
+.line{position:absolute;top:0;bottom:0;width:2px;height:100%;z-index:15}
+.line:after{left:0;top:0;bottom:0;width:2px}
+.line:before{left:3px;top:2px}
+.absence{left:0;right:0}
+@media(max-width:700px){
+  .lesson{top:6px;height:74px}
+  .lesson.lunch{top:auto;bottom:4px;height:30px}
+  .duty{top:16px;height:54px}
+}
