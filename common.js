@@ -210,30 +210,61 @@ function updateTabTitle(){
 
 function layout(){
   const p=data.periods||[],slots=[];
-  const mobile=narrow(),periodWidth=mobile?112:150,breakMin=mobile?36:22,breakFactor=mobile?3.4:2.5;
+  const mobile=narrow(),pxPerMin=mobile?2.45:3.0;
+  const timelineStart=mins(data.timeline?.start||p[0]?.start||'07:05');
+  const timelineEnd=mins(data.timeline?.end||p[p.length-1]?.end||'15:05');
+
   p.forEach((x,i)=>{
-    slots.push({type:'period',key:'p'+i,index:i,label:x.label,start:x.start,end:x.end,width:periodWidth});
+    slots.push({
+      type:'period',key:'p'+i,index:i,label:x.label,start:x.start,end:x.end,
+      left:(mins(x.start)-timelineStart)*pxPerMin,
+      width:(mins(x.end)-mins(x.start))*pxPerMin
+    });
     const next=p[i+1];
-    if(next){
-      const gap=mins(next.start)-mins(x.end);
-      if(gap>0) slots.push({type:'break',key:'b'+i,index:i,start:x.end,end:next.start,width:Math.max(breakMin,gap*breakFactor)});
-    }else if(data.timeline?.end && mins(data.timeline.end)>mins(x.end)){
-      const gap=mins(data.timeline.end)-mins(x.end);
-      slots.push({type:'break',key:'bend',index:i,start:x.end,end:data.timeline.end,width:Math.max(breakMin,gap*breakFactor)});
+    if(next&&mins(next.start)>mins(x.end)){
+      slots.push({
+        type:'break',key:'b'+i,index:i,start:x.end,end:next.start,
+        left:(mins(x.end)-timelineStart)*pxPerMin,
+        width:(mins(next.start)-mins(x.end))*pxPerMin
+      });
+    }else if(!next&&data.timeline?.end&&mins(data.timeline.end)>mins(x.end)){
+      slots.push({
+        type:'break',key:'bend',index:i,start:x.end,end:data.timeline.end,
+        left:(mins(x.end)-timelineStart)*pxPerMin,
+        width:(mins(data.timeline.end)-mins(x.end))*pxPerMin
+      });
     }
   });
-  let col=1;slots.forEach(s=>s.col=col++);return slots;
+
+  slots.timelineStart=timelineStart;
+  slots.timelineEnd=timelineEnd;
+  slots.pxPerMin=pxPerMin;
+  slots.totalWidth=(timelineEnd-timelineStart)*pxPerMin;
+  return slots;
 }
 function template(slots){return slots.map(s=>s.width+'px').join(' ')}
+function rectForTime(start,end,slots){
+  const s=Math.max(slots.timelineStart,mins(start)),e=Math.min(slots.timelineEnd,mins(end));
+  return{
+    left:(s-slots.timelineStart)*slots.pxPerMin,
+    width:Math.max(1,(e-s)*slots.pxPerMin)
+  };
+}
 function periodSlotForEvent(e,slots){
-  const mid=(mins(e.start)+mins(e.end))/2;
-  const candidates=slots.filter(s=>s.type==='period'&&mid>=mins(s.start)&&mid<=mins(s.end));
-  if(candidates.length)return candidates.sort((a,b)=>mins(b.start)-mins(a.start))[0];
-  return slots.filter(s=>s.type==='period').sort((a,b)=>Math.abs(mid-(mins(a.start)+mins(a.end))/2)-Math.abs(mid-(mins(b.start)+mins(b.end))/2))[0];
+  const periods=slots.filter(s=>s.type==='period');
+  return periods
+    .map(s=>({s,overlap:Math.max(0,Math.min(mins(e.end),mins(s.end))-Math.max(mins(e.start),mins(s.start))),sameStart:e.start===s.start?1:0}))
+    .sort((a,b)=>b.sameStart-a.sameStart||b.overlap-a.overlap||mins(b.s.start)-mins(a.s.start))[0]?.s||null;
 }
 function breakSlotForEvent(e,slots){
   const mid=(mins(e.start)+mins(e.end))/2;
   return slots.find(s=>s.type==='break'&&mid>=mins(s.start)&&mid<=mins(s.end))||null;
+}
+function overlapRange(){
+  const a=(data.periods||[]).find(p=>p.label==='5a'),b=(data.periods||[]).find(p=>p.label==='5b');
+  if(!a||!b)return null;
+  const start=Math.max(mins(a.start),mins(b.start)),end=Math.min(mins(a.end),mins(b.end));
+  return end>start?{start:tm(start),end:tm(end)}:null;
 }
 function activeSlot(m,slots){
   const ps=slots.filter(s=>s.type==='period'&&m>=mins(s.start)&&m<=mins(s.end)).sort((a,b)=>mins(b.start)-mins(a.start));
@@ -245,33 +276,37 @@ function activeSlot(m,slots){
 
 function header(){
   const h=$('timeHeader'),slots=layout();
-  h.innerHTML='';h.style.gridTemplateColumns=template(slots);
+  h.innerHTML='';
+  h.style.width=slots.totalWidth+'px';
+
   slots.forEach(s=>{
-    const x=document.createElement('div');x.style.gridColumn=s.col;
+    const x=document.createElement('div');
+    x.style.left=s.left+'px';x.style.width=s.width+'px';
     if(s.type==='period'){
-      x.className='periodCell';x.innerHTML=`<b>${esc(s.label)}</b><small>${s.start}–${s.end}</small>`;
+      x.className='periodCell';
+      x.style.zIndex=s.label==='5b'?'3':'2';
+      x.innerHTML=`<b>${esc(s.label)}</b><small>${s.start}–${s.end}</small>`;
     }else{
       x.className='breakCell';x.title=`Přestávka ${s.start}–${s.end}`;
     }
     h.appendChild(x);
   });
+
+  const ov=overlapRange();
+  if(ov){
+    const r=rectForTime(ov.start,ov.end,slots),x=document.createElement('div');
+    x.className='overlapBand overlapHeader';x.style.left=r.left+'px';x.style.width=r.width+'px';
+    x.title=`Překryv 5a a 5b: ${ov.start}–${ov.end}`;
+    h.appendChild(x);
+  }
 }
 
 function lesson(track,e,meta,slots){
   const s=periodSlotForEvent(e,slots);if(!s)return;
-  const x=document.createElement('div');
+  const x=document.createElement('div'),r=rectForTime(e.start,e.end,slots);
   x.className='lesson'+(e.kind==='lunch'?' lunch':'')+(meta.changed?' changed':'')+(e.status==='cancelled'?' cancelled':'');
-  x.style.gridColumn=s.col;x.style.background=data.colors?.[e.class]||data.colors?.default||'#ddd';
-  const sm=mins(s.start),em=mins(s.end),es=Math.max(sm,mins(e.start)),ee=Math.min(em,mins(e.end));
-  const startPct=Math.max(0,Math.min(100,(es-sm)/(em-sm)*100));
-  const endPct=Math.max(startPct,Math.min(100,(ee-sm)/(em-sm)*100));
-  if(startPct>0.01||endPct<99.99){
-    const w=Math.max(8,endPct-startPct);
-    x.style.justifySelf='start';
-    x.style.width=`calc(${w}% - 4px)`;
-    x.style.marginLeft=`calc(${startPct}% + 2px)`;
-    x.style.marginRight='0';
-  }
+  x.style.left=r.left+'px';x.style.width=r.width+'px';
+  x.style.background=data.colors?.[e.class]||data.colors?.default||'#ddd';
   x.dataset.start=e.start;x.dataset.end=e.end;
   const showTime=(e.start!==s.start||e.end!==s.end)?`<span class="etime">${esc(e.start)}–${esc(e.end)}</span>`:'';
   const tag=cycleLabel(e);
@@ -280,10 +315,10 @@ function lesson(track,e,meta,slots){
 }
 
 function duty(track,e,meta,slots){
-  const s=breakSlotForEvent(e,slots);if(!s)return;
+  const r=rectForTime(e.start,e.end,slots);
   const x=document.createElement('div');
   x.className='duty'+(meta.changed?' changed':'')+(e.status==='cancelled'?' cancelled':'');
-  x.style.gridColumn=s.col;x.dataset.start=e.start;x.dataset.end=e.end;
+  x.style.left=r.left+'px';x.style.width=r.width+'px';x.dataset.start=e.start;x.dataset.end=e.end;
   x.title=`Dohled ${e.start}–${e.end}${e.room?' • '+e.room:''}${e.note?' • '+e.note:''}`;
   x.innerHTML=`<span>${esc(e.room||e.note||'DOHLED')}</span>`;
   x.onclick=ev=>{ev.stopPropagation();opt.edit?.(e,{...meta,kind:'duty'})};track.appendChild(x);
@@ -291,20 +326,44 @@ function duty(track,e,meta,slots){
 
 function render(){
   if(!data)return;
-  const slots=layout(),tpl=template(slots),today=iso(new Date());
+  const slots=layout(),today=iso(new Date());
   $('weekLabel').textContent=`${fmt(week)} – ${fmt(add(week,4))}`;
-  const sched=document.querySelector('.sched');if(sched)sched.style.minWidth=(dayWidth()+slots.reduce((a,s)=>a+s.width,0))+'px';
+  const sched=document.querySelector('.sched');
+  if(sched)sched.style.minWidth=(dayWidth()+slots.totalWidth)+'px';
   const box=$('days');box.innerHTML='';
+
   for(let d=1;d<=5;d++){
     const date=add(week,d-1),k=iso(date),c=ch(k),row=document.createElement('div');
     row.className='row'+(c.absence?' absent':'')+(k===today?' today':'');
     const dl=document.createElement('div');dl.className='day';dl.innerHTML=`<b>${days[d]}</b><small>${fmt(date)}</small>`;
     if(opt.absence)dl.onclick=()=>opt.absence(k);row.appendChild(dl);
-    const tr=document.createElement('div');tr.className='track';tr.style.gridTemplateColumns=tpl;
+
+    const tr=document.createElement('div');tr.className='track';tr.style.width=slots.totalWidth+'px';
+
+    // Skutečné přestávky v časové ose.
+    slots.filter(s=>s.type==='break').forEach(s=>{
+      const bg=document.createElement('div');bg.className='breakBand';
+      bg.style.left=s.left+'px';bg.style.width=s.width+'px';tr.appendChild(bg);
+    });
+
+    // Svislé začátky hodin.
+    slots.filter(s=>s.type==='period').forEach(s=>{
+      const g=document.createElement('div');g.className='timeGuide';g.style.left=s.left+'px';tr.appendChild(g);
+    });
+
+    // Překryv 5a/5b (12:20–12:35) je vyšrafovaný.
+    const ov=overlapRange();
+    if(ov){
+      const r=rectForTime(ov.start,ov.end,slots),band=document.createElement('div');
+      band.className='overlapBand';band.style.left=r.left+'px';band.style.width=r.width+'px';tr.appendChild(band);
+    }
 
     if(opt.add){
       slots.forEach(s=>{
-        const z=document.createElement('button');z.type='button';z.className='slotHit '+(s.type==='break'?'breakHit':'periodHit');z.style.gridColumn=s.col;
+        const z=document.createElement('button');z.type='button';
+        z.className='slotHit '+(s.type==='break'?'breakHit':'periodHit');
+        z.style.left=s.left+'px';z.style.width=s.width+'px';
+        z.style.zIndex=s.type==='period'&&s.label==='5b'?'2':'1';
         z.title=s.type==='period'?`${s.label}. hodina ${s.start}–${s.end}`:`Přestávka ${s.start}–${s.end} – přidat dohled`;
         z.setAttribute('aria-label',z.title);
         z.onclick=ev=>{ev.stopPropagation();opt.add(k,s.start,s.end,{kind:s.type==='break'?'duty':'lesson',period:s.type==='period'?s.label:null})};
@@ -314,41 +373,50 @@ function render(){
 
     data.schedule.filter(e=>e.day===d).forEach(base=>{
       const over=c.events?.[base.id],raw=over?{...base,...over}:base,e=eventForDisplay(raw,k);
-      if((e.kind||'lesson')==='duty')duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);else lesson(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots)
+      if((e.kind||'lesson')==='duty')duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);else lesson(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);
     });
     (data.duties||[]).filter(e=>e.day===d).forEach(base=>{
       const over=c.events?.[base.id],raw=over?{...base,...over,kind:'duty'}:base,e=eventForDisplay(raw,k);
-      duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots)
+      duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);
     });
     (c.custom||[]).forEach(raw=>{
       const e=eventForDisplay(raw,k);
-      if(e.kind==='duty')duty(tr,e,{date:k,id:e.id,type:'custom',changed:true},slots);else lesson(tr,e,{date:k,id:e.id,type:'custom',changed:true},slots)
+      if(e.kind==='duty')duty(tr,e,{date:k,id:e.id,type:'custom',changed:true},slots);else lesson(tr,e,{date:k,id:e.id,type:'custom',changed:true},slots);
     });
-    if(c.absence){const ab=document.createElement('div');ab.className='absence';ab.textContent='NEPŘÍTOMEN'+(c.absence.note?' – '+c.absence.note:'');ab.onclick=()=>opt.absence?.(k);tr.appendChild(ab)}
+
+    if(c.absence){
+      const ab=document.createElement('div');ab.className='absence';
+      ab.textContent='NEPŘÍTOMEN'+(c.absence.note?' – '+c.absence.note:'');
+      ab.onclick=()=>opt.absence?.(k);tr.appendChild(ab);
+    }
+
     const ln=document.createElement('div');ln.className='line';ln.id='n-'+k;tr.appendChild(ln);
-    row.appendChild(tr);box.appendChild(row)
+    row.appendChild(tr);box.appendChild(row);
   }
   nowline();
 }
 
 function nowline(){
-  document.querySelectorAll('.line').forEach(x=>{x.style.display='none';x.style.removeProperty('grid-column')});
+  document.querySelectorAll('.line').forEach(x=>x.style.display='none');
   document.querySelectorAll('.lesson.now,.duty.now').forEach(x=>x.classList.remove('now'));
   if(!data)return;
   updateTabTitle();
   const n=new Date(),k=iso(n),ln=$('n-'+k);if(!ln)return;
-  const m=n.getHours()*60+n.getMinutes(),a=activeSlot(m,layout());if(!a)return;
-  ln.style.display='block';ln.style.gridColumn=String(a.slot.col);ln.style.setProperty('--frac',String(a.frac));ln.dataset.time=tm(m);
+  const m=n.getHours()*60+n.getMinutes(),slots=layout();
+  if(m<slots.timelineStart||m>slots.timelineEnd)return;
+  ln.style.display='block';
+  ln.style.left=((m-slots.timelineStart)*slots.pxPerMin)+'px';
+  ln.dataset.time=tm(m);
   const row=ln.closest('.row');
-  if(row&&!row.classList.contains('absent'))row.querySelectorAll('.lesson,.duty').forEach(x=>{if(m>=mins(x.dataset.start)&&m<mins(x.dataset.end))x.classList.add('now')})
+  if(row&&!row.classList.contains('absent'))row.querySelectorAll('.lesson,.duty').forEach(x=>{if(m>=mins(x.dataset.start)&&m<mins(x.dataset.end))x.classList.add('now')});
 }
 
 function scrollToNow(smooth=false){
   const n=new Date();
   if(monday(n).getTime()!==week.getTime())return;
-  const m=n.getHours()*60+n.getMinutes(),slots=layout(),a=activeSlot(m,slots),shell=document.querySelector('.shell');
-  if(!a||!shell)return;
-  const i=slots.indexOf(a.slot),before=slots.slice(0,i).reduce((sum,s)=>sum+s.width,0),x=dayWidth()+before+a.frac*a.slot.width;
+  const m=n.getHours()*60+n.getMinutes(),slots=layout(),shell=document.querySelector('.shell');
+  if(!shell||m<slots.timelineStart||m>slots.timelineEnd)return;
+  const x=dayWidth()+(m-slots.timelineStart)*slots.pxPerMin;
   shell.scrollTo({left:Math.max(0,x-shell.clientWidth*.45),behavior:smooth?'smooth':'auto'});
 }
 
