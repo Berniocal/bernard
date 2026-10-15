@@ -586,20 +586,20 @@
     }
   ],
   "fontSizes": {
-    "subject": 16,
-    "class": 9,
-    "room": 9,
-    "note": 9,
-    "cycle": 8,
-    "test": 8,
-    "eventTime": 8,
-    "change": 8,
+    "subject": 17,
+    "class": 14,
+    "room": 14,
+    "note": 10,
+    "cycle": 13,
+    "test": 10,
+    "eventTime": 12,
+    "change": 10,
     "period": 16,
-    "periodTime": 9,
+    "periodTime": 10,
     "day": 17,
     "date": 12,
-    "duty": 11,
+    "duty": 13,
     "lunch": 13,
-    "absence": 14
+    "absence": 13
   }
 }
