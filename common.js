@@ -344,7 +344,7 @@ function render(){
   const box=$('days');box.innerHTML='';
 
   for(let d=1;d<=5;d++){
-    const date=add(week,d-1),k=iso(date),c=ch(k),row=document.createElement('div');
+    const date=add(week,d-1),k=iso(date),c=opt.baseOnly?{}:ch(k),row=document.createElement('div');
     row.className='row'+(c.absence?' absent':'')+(k===today?' today':'');
     const dl=document.createElement('div');dl.className='day';dl.innerHTML=`<b>${days[d]}</b><small>${fmt(date)}</small>`;
     if(opt.absence)dl.onclick=()=>opt.absence(k);row.appendChild(dl);
@@ -383,11 +383,11 @@ function render(){
     }
 
     data.schedule.filter(e=>e.day===d).forEach(base=>{
-      const over=c.events?.[base.id],raw=over?{...base,...over}:base,e=eventForDisplay(raw,k);
+      const over=c.events?.[base.id],raw=over?{...base,...over}:base,e=opt.baseOnly?raw:eventForDisplay(raw,k);
       if((e.kind||'lesson')==='duty')duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);else lesson(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);
     });
     (data.duties||[]).filter(e=>e.day===d).forEach(base=>{
-      const over=c.events?.[base.id],raw=over?{...base,...over,kind:'duty'}:base,e=eventForDisplay(raw,k);
+      const over=c.events?.[base.id],raw=over?{...base,...over,kind:'duty'}:base,e=opt.baseOnly?raw:eventForDisplay(raw,k);
       duty(tr,e,{date:k,id:base.id,type:'base',changed:!!over},slots);
     });
     (c.custom||[]).forEach(raw=>{
@@ -646,6 +646,6 @@ return{
   change:k=>{data.changes??={};return data.changes[k]??={}},
   cleanup:k=>{let c=data.changes?.[k];if(c&&!c.absence&&!Object.keys(c.events||{}).length&&!(c.custom||[]).length)delete data.changes[k]},
   week:()=>week,setWeek:x=>{week=x;render()},iso,add,monday,mins,tm,
-  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle,monitorEventStart,refreshFromServer,exportA5Jpg,applyFontSizes,fontDefaults:()=>({...DEFAULT_FONT_SIZES})
+  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle,monitorEventStart,refreshFromServer,exportA5Jpg,applyFontSizes,fontDefaults:()=>({...DEFAULT_FONT_SIZES}),setBaseOnly:v=>{opt.baseOnly=!!v;render()}
 };
 })();
