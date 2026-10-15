@@ -19,12 +19,23 @@ const DEFAULT_DUTIES=[
   {id:'du-tu-1305',day:2,start:'13:05',end:'13:15',subject:'DOHLED',class:'',room:'1ZŽ',kind:'duty'},
   {id:'du-th-0845',day:4,start:'08:45',end:'08:55',subject:'DOHLED',class:'',room:'1ZŽ',kind:'duty'}
 ];
+const DEFAULT_FONT_SIZES={"subject":16,"class":9,"room":9,"note":9,"cycle":8,"test":8,"eventTime":8,"change":8,"period":16,"periodTime":9,"day":17,"date":12,"duty":11,"lunch":13,"absence":14};
 
 function normalize(x){
   x??={};
   x.changes??={};
   if(!Array.isArray(x.duties)) x.duties=DEFAULT_DUTIES.map(v=>({...v}));
+  x.fontSizes={...DEFAULT_FONT_SIZES,...(x.fontSizes||{})};
   return x;
+}
+function applyFontSizes(){
+  if(!data)return;
+  const f={...DEFAULT_FONT_SIZES,...(data.fontSizes||{})},r=document.documentElement;
+  const set=(k,v)=>r.style.setProperty(k,Math.max(6,Math.min(40,Number(v)||10))+'px');
+  set('--fs-subject',f.subject);set('--fs-class',f.class);set('--fs-room',f.room);set('--fs-note',f.note);
+  set('--fs-cycle',f.cycle);set('--fs-test',f.test);set('--fs-etime',f.eventTime);set('--fs-change',f.change);
+  set('--fs-period',f.period);set('--fs-period-time',f.periodTime);set('--fs-day',f.day);set('--fs-date',f.date);
+  set('--fs-duty',f.duty);set('--fs-lunch',f.lunch);set('--fs-absence',f.absence);
 }
 function ch(k){return data.changes?.[k]||{}}
 function fmt(d){return d.toLocaleDateString('cs-CZ',{day:'numeric',month:'numeric'})}
@@ -451,6 +462,7 @@ function exportA5Jpg(){
   if(!data)return;
   const W=2480,H=1748,canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
   const ctx=canvas.getContext('2d'),margin=70,titleH=105,dayW=130,headH=105,rowH=270;
+  const fs={...DEFAULT_FONT_SIZES,...(data.fontSizes||{})},cfs=(k,m=2)=>Math.round((Number(fs[k])||DEFAULT_FONT_SIZES[k])*m);
   const trackX=margin+dayW,trackW=W-margin-trackX,t0=mins(data.timeline?.start||'07:05'),t1=mins(data.timeline?.end||'15:05'),ppm=trackW/(t1-t0);
   const y0=margin+titleH,daysCs=['','Po','Út','St','Čt','Pá'];
   const tx=t=>trackX+(mins(t)-t0)*ppm;
@@ -473,8 +485,8 @@ function exportA5Jpg(){
     const x=tx(p.start),w=tw(p.start,p.end);
     ctx.fillStyle='rgba(255,255,255,.96)';ctx.fillRect(x,y0,w,headH);
     ctx.strokeStyle='#dfe3e8';ctx.lineWidth=2;ctx.strokeRect(x,y0,w,headH);
-    canvasTextFit(ctx,p.label,x+w/2,y0+35,w-12,31,'700');
-    canvasTextFit(ctx,p.start+'–'+p.end,x+w/2,y0+72,w-10,18,'500','#4b5563');
+    canvasTextFit(ctx,p.label,x+w/2,y0+35,w-12,cfs('period',1.95),'700');
+    canvasTextFit(ctx,p.start+'–'+p.end,x+w/2,y0+72,w-10,cfs('periodTime',2),'500','#4b5563');
     const n=periods[i+1];
     if(n&&mins(n.start)>mins(p.end)){
       const bx=tx(p.end),bw=tw(p.end,n.start);
@@ -493,8 +505,8 @@ function exportA5Jpg(){
     const date=add(week,d-1),k=iso(date),c=ch(k),y=y0+headH+(d-1)*rowH;
     ctx.fillStyle='#fff';ctx.fillRect(margin,y,dayW,rowH);
     ctx.strokeStyle='#dfe3e8';ctx.lineWidth=2;ctx.strokeRect(margin,y,dayW,rowH);
-    ctx.fillStyle='#18202a';ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='700 34px system-ui,-apple-system,Segoe UI,Arial';ctx.fillText(daysCs[d],margin+20,y+82);
-    ctx.fillStyle='#6b7280';ctx.font='500 23px system-ui,-apple-system,Segoe UI,Arial';ctx.fillText(fmt(date),margin+20,y+122);
+    ctx.fillStyle='#18202a';ctx.textAlign='left';ctx.textBaseline='middle';ctx.font=`700 ${cfs('day',2)}px system-ui,-apple-system,Segoe UI,Arial`;ctx.fillText(daysCs[d],margin+20,y+82);
+    ctx.fillStyle='#6b7280';ctx.font=`500 ${cfs('date',1.9)}px system-ui,-apple-system,Segoe UI,Arial`;ctx.fillText(fmt(date),margin+20,y+122);
 
     ctx.fillStyle='#fff';ctx.fillRect(trackX,y,trackW,rowH);
     ctx.strokeStyle='#e3e6ea';ctx.strokeRect(trackX,y,trackW,rowH);
@@ -513,10 +525,10 @@ function exportA5Jpg(){
     const drawLesson=(e,changed)=>{
       const x=tx(e.start),w=Math.max(4,tw(e.start,e.end));
       if(e.kind==='lunch'){
-        const h=62,yy=y+rowH-h-12;
+        const yy=y+12,h=rowH-24;
         canvasRoundRect(ctx,x+3,yy,Math.max(2,w-6),h,8,'#eaf6df','#9fc680');
-        canvasTextFit(ctx,e.subject||'OBĚD',x+w/2,yy+31,w-16,24,'700','center','#355b27');
-        canvasTextFit(ctx,e.start+'–'+e.end,x+8,yy+50,w-16,14,'500','left','#55704b');
+        canvasTextFit(ctx,e.subject||'OBĚD',x+w/2,yy+h/2-10,w-16,cfs('lunch',1.95),'700','center','#355b27');
+        canvasTextFit(ctx,e.start+'–'+e.end,x+10,yy+28,w-20,cfs('eventTime',1.9),'500','left','#55704b');
         return;
       }
       const yy=y+12,h=rowH-24;
@@ -527,29 +539,29 @@ function exportA5Jpg(){
       let left=x+10;
       if(changed){
         canvasRoundRect(ctx,left,yy+8,92,30,5,'#ffefad','#e4c965');
-        canvasTextFit(ctx,'ZMĚNA',left+46,yy+23,84,15,'800');left+=100;
+        canvasTextFit(ctx,'ZMĚNA',left+46,yy+23,84,cfs('change',1.9),'800');left+=100;
       }
       const tag=cycleLabel(e);
       if(tag){
-        canvasTextFit(ctx,tag,left,yy+22,70,17,'700','left','#364152');
+        canvasTextFit(ctx,tag,left,yy+22,70,cfs('cycle',2),'700','left','#364152');
       }
       if(e.test){
         canvasRoundRect(ctx,x+w/2-43,yy+7,86,31,6,'#fff0f0','#e2a0a0');
-        canvasTextFit(ctx,'TEST',x+w/2,yy+23,76,16,'800','center','#a61c1c');
+        canvasTextFit(ctx,'TEST',x+w/2,yy+23,76,cfs('test',2),'800','center','#a61c1c');
       }
-      if(e.room)canvasTextFit(ctx,e.room,x+w-10,yy+22,80,17,'600','right','#18202a');
-      canvasTextFit(ctx,e.subject||'',x+w/2,yy+h/2-10,w-22,31,'650');
-      if(e.note)canvasTextFit(ctx,e.note,x+w/2,yy+h/2+34,w-24,18,'500','center','#555');
-      if(e.class)canvasTextFit(ctx,e.class,x+10,yy+h-18,w-20,17,'500','left','#18202a');
+      if(e.room)canvasTextFit(ctx,e.room,x+w-10,yy+22,80,cfs('room',1.9),'600','right','#18202a');
+      canvasTextFit(ctx,e.subject||'',x+w/2,yy+h/2-10,w-22,cfs('subject',1.95),'650');
+      if(e.note)canvasTextFit(ctx,e.note,x+w/2,yy+h/2+34,w-24,cfs('note',2),'500','center','#555');
+      if(e.class)canvasTextFit(ctx,e.class,x+10,yy+h-18,w-20,cfs('class',1.9),'500','left','#18202a');
       if(e.start!==(periodSlotForEvent(e,layout())?.start||e.start)||e.end!==(periodSlotForEvent(e,layout())?.end||e.end)){
-        canvasTextFit(ctx,e.start+'–'+e.end,x+10,yy+52,w-20,15,'500','left','#5f6873');
+        canvasTextFit(ctx,e.start+'–'+e.end,x+10,yy+52,w-20,cfs('eventTime',1.9),'500','left','#5f6873');
       }
     };
     const drawDuty=(e,changed)=>{
       const x=tx(e.start),w=Math.max(10,tw(e.start,e.end)),yy=y+54,h=rowH-108;
       canvasRoundRect(ctx,x+2,yy,Math.max(8,w-4),h,5,'#bfc2c6','#9299a2');
       ctx.save();ctx.translate(x+w/2,yy+h/2);ctx.rotate(-Math.PI/2);
-      canvasTextFit(ctx,e.room||e.note||'DOHLED',0,0,h-12,18,'700');
+      canvasTextFit(ctx,e.room||e.note||'DOHLED',0,0,h-12,cfs('duty',1.8),'700');
       ctx.restore();
     };
 
@@ -569,7 +581,7 @@ function exportA5Jpg(){
     if(c.absence){
       ctx.fillStyle='rgba(255,237,237,.94)';ctx.fillRect(trackX+4,y+rowH/2-36,trackW-8,72);
       ctx.strokeStyle='#c62828';ctx.lineWidth=4;ctx.strokeRect(trackX+4,y+rowH/2-36,trackW-8,72);
-      canvasTextFit(ctx,'NEPŘÍTOMEN'+(c.absence.note?' – '+c.absence.note:''),trackX+trackW/2,y+rowH/2,trackW-30,27,'800','center','#a61c1c');
+      canvasTextFit(ctx,'NEPŘÍTOMEN'+(c.absence.note?' – '+c.absence.note:''),trackX+trackW/2,y+rowH/2,trackW-30,cfs('absence',1.9),'800','center','#a61c1c');
     }
   }
 
@@ -609,7 +621,7 @@ async function refreshFromServer(){
     if(!r.ok)return;
     const fresh=normalize(await r.json()),fp=JSON.stringify(fresh);
     if(fp===dataFingerprint)return;
-    data=fresh;dataFingerprint=fp;
+    data=fresh;dataFingerprint=fp;applyFontSizes();
     header();render();monitorEventStart();
   }catch(_){}
 }
@@ -624,16 +636,16 @@ async function load(options={}){
   opt=options;
   const r=await fetch('data/rozvrh.json?v='+Date.now(),{cache:'no-store'});
   if(!r.ok)throw Error('HTTP '+r.status);
-  data=normalize(await r.json());dataFingerprint=JSON.stringify(data);
+  data=normalize(await r.json());dataFingerprint=JSON.stringify(data);applyFontSizes();
   $('pageTitle').textContent=data.teacher+' – '+(options.admin?'admin rozvrhu':'rozvrh');
   header();nav();bindResize();bindAlerts();bindAutoRefresh();render();monitorEventStart();setInterval(nowline,15000);requestAnimationFrame(()=>scrollToNow(false));return data;
 }
 
 return{
-  load,render,get:()=>data,set:x=>{data=normalize(x);header()},
+  load,render,get:()=>data,set:x=>{data=normalize(x);applyFontSizes();header()},
   change:k=>{data.changes??={};return data.changes[k]??={}},
   cleanup:k=>{let c=data.changes?.[k];if(c&&!c.absence&&!Object.keys(c.events||{}).length&&!(c.custom||[]).length)delete data.changes[k]},
   week:()=>week,setWeek:x=>{week=x;render()},iso,add,monday,mins,tm,
-  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle,monitorEventStart,refreshFromServer,exportA5Jpg
+  periods:()=>data?.periods||[],layout,scrollToNow,updateTabTitle,monitorEventStart,refreshFromServer,exportA5Jpg,applyFontSizes,fontDefaults:()=>({...DEFAULT_FONT_SIZES})
 };
 })();
