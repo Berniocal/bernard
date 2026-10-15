@@ -584,5 +584,22 @@
       "room": "1ZŽ",
       "kind": "duty"
     }
-  ]
+  ],
+  "fontSizes": {
+    "subject": 16,
+    "class": 9,
+    "room": 9,
+    "note": 9,
+    "cycle": 8,
+    "test": 8,
+    "eventTime": 8,
+    "change": 8,
+    "period": 16,
+    "periodTime": 9,
+    "day": 17,
+    "date": 12,
+    "duty": 11,
+    "lunch": 13,
+    "absence": 14
+  }
 }
