@@ -541,6 +541,98 @@
           "test": true
         }
       }
+    },
+    "2026-11-03": {
+      "custom": [
+        {
+          "subject": "TH",
+          "class": "2A4",
+          "room": "202",
+          "start": "07:25",
+          "end": "07:50",
+          "note": "Suplování",
+          "status": "normal",
+          "kind": "lesson",
+          "test": false,
+          "id": "c1793685677979"
+        },
+        {
+          "subject": "FYZ",
+          "class": "1E4",
+          "room": "102",
+          "start": "10:00",
+          "end": "10:45",
+          "note": "Suplování",
+          "status": "normal",
+          "kind": "lesson",
+          "test": false,
+          "id": "c1793685875267"
+        }
+      ]
+    },
+    "2026-11-05": {
+      "events": {
+        "th7": {
+          "subject": "FYZ",
+          "class": "1A4",
+          "room": "154",
+          "start": "14:10",
+          "end": "14:55",
+          "note": "",
+          "status": "cancelled",
+          "kind": "lesson",
+          "test": false
+        },
+        "th5b": {
+          "subject": "dohled",
+          "class": "",
+          "room": "jídelna",
+          "start": "12:35",
+          "end": "13:10",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": false
+        },
+        "th5a": {
+          "subject": "2p 5a+5b",
+          "class": "",
+          "room": "",
+          "start": "11:50",
+          "end": "12:20",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": false
+        }
+      },
+      "custom": []
+    },
+    "2026-11-06": {
+      "events": {
+        "fr4": {
+          "subject": "FYZ",
+          "class": "1E4",
+          "room": "322",
+          "start": "10:55",
+          "end": "11:40",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        },
+        "fr5b": {
+          "subject": "FYZ",
+          "class": "3A6",
+          "room": "365",
+          "start": "12:20",
+          "end": "13:05",
+          "note": "",
+          "status": "normal",
+          "kind": "lesson",
+          "test": true
+        }
+      }
     }
   },
   "duties": [
