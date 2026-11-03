@@ -633,6 +633,32 @@
           "test": true
         }
       }
+    },
+    "2026-11-04": {
+      "events": {
+        "we1": {
+          "subject": "MAT",
+          "class": "3A8",
+          "room": "123",
+          "start": "08:00",
+          "end": "08:45",
+          "note": "",
+          "status": "cancelled",
+          "kind": "lesson",
+          "test": false
+        },
+        "we5b": {
+          "subject": "MAT",
+          "class": "6A8",
+          "room": "216",
+          "start": "12:20",
+          "end": "13:05",
+          "note": "",
+          "status": "cancelled",
+          "kind": "lesson",
+          "test": false
+        }
+      }
     }
   },
   "duties": [
